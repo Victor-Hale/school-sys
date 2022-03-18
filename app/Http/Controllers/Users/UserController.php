@@ -2,7 +2,13 @@
 
 namespace App\Http\Controllers\Users;
 
+use App\Http\Requests\registerRequest;
+use App\Http\Requests\userstatus;
+use App\Imports\DeanImport;
 use App\Imports\UsersImport;
+use App\Models\college;
+use App\Models\dean;
+use App\Models\user;
 use App\Models\Users;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -20,12 +26,13 @@ class UserController extends Controller
      * @return \Illuminate\Http\JsonResponse
      * @throws \Exception
      */
-    public function registered(Request $registeredRequest)
+    public function registered(registerRequest $registeredRequest)
     {
         $count = Users::checknumber($registeredRequest);   //检测账号密码是否存在
         if($count == 0)
         {
             $student_id = Users::createUser(self::userHandle($registeredRequest));
+
             return  $student_id ?
                 json_success('注册成功!',$student_id,200  ) :
                 json_fail('注册失败!',null,100  ) ;
@@ -42,7 +49,7 @@ class UserController extends Controller
      * @param Request $request
      * @return \Illuminate\Http\JsonResponse
      */
-    public function login(Request $request)
+    public function login(registerRequest $request)
     {
 
         $credentials = self::credentials($request);   //从前端获取账号密码
@@ -93,6 +100,7 @@ class UserController extends Controller
         $registeredInfo = $request->except('password_confirmation');
         $registeredInfo['password'] = bcrypt($registeredInfo['password']);
         $registeredInfo['account'] = $registeredInfo['account'];
+        $registeredInfo['level'] = $request['level'];
         return $registeredInfo;
     }
     /**
@@ -141,13 +149,50 @@ class UserController extends Controller
             json_success('导入成功!',null,  200):
             json_fail('导入失败!',null, 100 ) ;
     }
+
+    public function deanimport(Request $request)
+    {
+        $file = $request['file'];
+        $res= Excel::import(new DeanImport, $file);
+        return $res?
+            json_success('导入成功!',null,  200):
+            json_fail('导入失败!',null, 100 ) ;
+    }
+
+
+    //院长导出
+    public function deanExport()
+    {
+        $d=dean::select()->get();
+        return (new FastExcel($d))->download('学生信息' . '.xlsx');
+    }
+
+    //学生导出
+    public function studentExport(Request $request)
+    {
+        $SNumber=$request['SNumber'];
+        $d=college::export($SNumber);
+
+        return (new FastExcel($d))->download('模板' . '.xlsx');
+    }
+
+
+    //教师导出
+    public function teacherExport(Request $request)
+    {
+        $ClassName=$request['ClassName'];
+
+        $d=college::studentexport($ClassName);
+
+        return (new FastExcel($d))->download('模板' . '.xlsx');
+    }
     /**
      * 邮件发送
      */
-    public function sendmail(Request $request){
-        $email = $request->input('email');
-        Mail::raw("这是我测试发邮件。。。不用管,通过laravel框架，调取前端表单数据发送的邮件", function ($message) use ($email) {
-            $message->subject("测试的邮件主题");
+    public function sendmail(userstatus $request){
+        $email = $request->input('account');
+        Mail::raw("忘记密码请点击这里 http://127.0.0.1:8000/api/users/userchange", function ($message) use ($email) {
+            $message->subject("东软学院");
             // 发送到哪个邮箱账号
             $message->to($email);
         });
@@ -157,4 +202,28 @@ class UserController extends Controller
             json_fail('操作失败!', null, 100);
     }
 
+    public function userChange(userstatus $request){
+        $account=$request['account'];
+        $res=user::change($account);
+        return $res ?
+            json_success('操作成功!', $res, 200):
+            json_fail('操作失败!', null, 100);
+    }
+    //忘记密码-修改密码
+    public function modify(Request $registeredRequest)
+    {
+        $account     = $registeredRequest['account'];
+        $newpassword = $registeredRequest['password'];
+
+
+        $password3 = self::userHandle111($newpassword);
+        $red = DB::table('user')->where('account', '=', $account)->update([
+            'password' => $password3,
+            'change'=>0
+
+        ]);
+        return $red ?
+            json_success('修改成功!', $red, 200) :
+            json_fail('修改失败!', null, 100);
+    }
 }
