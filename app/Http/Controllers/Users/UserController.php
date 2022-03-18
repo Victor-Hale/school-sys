@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Users;
 
 use App\Imports\UsersImport;
+use App\Models\teacher\User;
 use App\Models\Users;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -127,7 +128,7 @@ class UserController extends Controller
      */
     public function export()
     {
-        $d=Users::select()->get();
+        $d=User::select()->get();
         return (new FastExcel($d))->download('模板' . '.xlsx');
     }
     /**
