@@ -6,6 +6,7 @@ use App\Http\Requests\registerRequest;
 use App\Http\Requests\userstatus;
 use App\Imports\DeanImport;
 use App\Imports\UsersImport;
+use App\Models\teacher\User;
 use App\Models\college;
 use App\Models\dean;
 use App\Models\user;
@@ -135,7 +136,7 @@ class UserController extends Controller
      */
     public function export()
     {
-        $d=Users::select()->get();
+        $d=User::select()->get();
         return (new FastExcel($d))->download('模板' . '.xlsx');
     }
     /**
