@@ -11,13 +11,14 @@ class Users extends Authenticatable implements JWTSubject
 {
     use Notifiable ;
 
-    protected $table = 'users';
+    protected $table = 'user';
     protected $remeberTokenName = NULL;
     protected $guarded = [];
-    protected $fillable = [ 'password','account'];
+    protected $fillable = [ 'password','account','level','change'];
     protected $hidden = [
         'password',
     ];
+    protected $timestamp=false;
     public function getJWTCustomClaims()
     {
         // TODO: Implement getJWTCustomClaims() method.
@@ -40,7 +41,14 @@ class Users extends Authenticatable implements JWTSubject
     public static function createUser($array = [])
     {
         try {
-            $student_id = self::create($array)->id;
+
+            $student_id = self::create([
+                'account'=>$array['account'],
+                'password'=>$array['password'],
+                'level'=>$array['level'],
+                'change'=>0
+            ]);
+          //  $student_id=self::select('id')->where('account','=',$array['account']);
             //echo "student_id:" . $student_id;
             return $student_id ?
                 $student_id :
@@ -73,4 +81,6 @@ class Users extends Authenticatable implements JWTSubject
             return false;
         }
     }
+
+
 }
